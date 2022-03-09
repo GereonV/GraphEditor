@@ -206,17 +206,24 @@ public class GraphManager implements MouseListener {
         for(l1.toFirst(); l1.hasAccess(); l1.next()) {
             startVert = (EmbeddedVertex) l1.getContent();
             for(l2.toFirst(); l2.hasAccess(); l2.next()) {
-                g.addEdge(new Edge(l1.getContent(), l2.getContent(), (int) (Math.random() * 10)));
+                g.addEdge(new Edge(l1.getContent(), l2.getContent(), Math.random() * 10));
                 drawEdge((EmbeddedVertex) l2.getContent(), cg);
             }
         }
     }
     
-    //Alex, kopier hier rein!
-    //1. Zeile: newG();
-    //letzte Zeile: redraw();
     public void generateGraph(int count) {
         newG();
+        List<Vertex> vertices = new List<>();
+        int centerX = gf.getjTabbedPane1().getWidth() / 2, centerY = gf.getjTabbedPane1().getHeight() / 2;
+        double angle = 2 * Math.PI / count, distance = Math.min(centerX, centerY) * 0.75;
+        for(int i = 0; i < count; i++) {
+            EmbeddedVertex vertex = new EmbeddedVertex("V_" + num_vert++, centerX + (int) (Math.sin(i * angle) * distance), centerY - (int) (Math.cos(i * angle) * distance));
+            g.addVertex(vertex);
+            for(vertices.toFirst(); vertices.hasAccess(); vertices.next())
+                g.addEdge(new Edge(vertex, vertices.getContent(), Math.random() * 10));;
+            vertices.append(vertex);
+        }
         redraw();
     }
     
