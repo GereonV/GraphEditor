@@ -1,11 +1,15 @@
 package graph;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Stack;
 
 public class Graph<T> {
 
     private static final int DEFAULT_CAPACITY = 10;
     public static final double NO_EDGE = Double.NEGATIVE_INFINITY;
+    public static final int NOT_EULERIAN = 0, EULERIAN_PATH = 1, EULERIAN_CIRCUIT = 2;
 
     private Object[] vertices;
     private double[][] directedEdges, undirectedEdges;
@@ -55,13 +59,13 @@ public class Graph<T> {
 
     public void connectDirected(T from, T to, double weight) {
         int i = find(from), j = find(to);
-        if(i != -1 && j != -1)
+        if(i != -1 && j != -1 && i != j && undirectedEdges[i][j] == NO_EDGE)
             directedEdges[i][j] = weight;
     }
 
     public void connectUndirected(T a, T b, double weight) {
         int i = find(a), j = find(b);
-        if(i != -1 && j != -1)
+        if(i != -1 && j != -1 && i != j && directedEdges[i][j] == NO_EDGE && directedEdges[j][i] == NO_EDGE)
             undirectedEdges[i][j] = undirectedEdges[j][i] = weight;
     }
 
@@ -121,6 +125,135 @@ public class Graph<T> {
                     l.add(e);
         }
         return l;
+    }
+
+    private LinkedList<Integer> bfs(int from, int to) {
+        ArrayList<Integer> visited = new ArrayList<>();
+        Queue<Stack<Integer>> queue = new LinkedList<>();
+        visited.add(from);
+        queue.offer(new Stack<>());
+        queue.peek().push(from);
+        while(!queue.isEmpty()) {
+            Stack<Integer> stack = queue.poll();
+            int i = stack.peek();
+            if(i == to)
+                return stackToPath(stack);
+            for(int j = 0; j < vertices.length; j++) {
+                if((directedEdges[i][j] == NO_EDGE && undirectedEdges[i][j] == NO_EDGE) || visited.contains(j))
+                    continue;
+                Stack<Integer> newStack = new Stack<>();
+                for(int e : stack)
+                    newStack.push(e);
+                newStack.push(j);
+                visited.add(j);
+                queue.offer(newStack);
+            }
+        }
+        return null;
+    }
+
+    public LinkedList<T> breadthFirstSearch(T from, T to) {
+        int i = find(from), j = find(to);
+        if(i == -1 || j == -1)
+            return null;
+        LinkedList<Integer> indices = bfs(i, j);
+        return indices == null ? null : path(indices);
+    }
+
+    private LinkedList<Integer> dfs(int from, int to) {
+        ArrayList<Integer> visited = new ArrayList<>();
+        Stack<Integer> stack = new Stack<>();
+        visited.add(from);
+        stack.push(from);
+        while(!stack.isEmpty()) {
+            int i = stack.peek();
+            if(i == to)
+                return stackToPath(stack);
+            boolean found = false;
+            for(int j = 0; j < vertices.length; j++) {
+                if((directedEdges[i][j] == NO_EDGE && undirectedEdges[i][j] == NO_EDGE) || visited.contains(j))
+                    continue;
+                visited.add(j);
+                stack.push(j);
+                found = true;
+                break;
+            }
+            if(!found)
+                stack.pop();
+        }
+        return null;
+    }
+
+    public LinkedList<T> depthFirstSearch(T from, T to) {
+        int i = find(from), j = find(to);
+        if(i == -1 || j == -1)
+            return null;
+        LinkedList<Integer> indices = dfs(i, j);
+        return indices == null ? null : path(indices);
+    }
+
+    private int eulerDir() {
+        ArrayList<Integer> indices = new ArrayList<>();
+        int start = -1, end = -1;
+        for(int i = 0; i < vertices.length; i++) {
+            int ins = 0, outs = 0;
+            for(int j = 0; j < vertices.length; j++) {
+                undirectedEdges[i][j] = NO_EDGE;
+                if(directedEdges[j][i] != NO_EDGE)
+                    ins++;
+                if(directedEdges[i][j] != NO_EDGE)
+                    outs++;
+            }
+            if(ins == 0 && outs == 0)
+                continue;
+            else if(ins - outs == 1 && end == -1)
+                end = i;
+            else if(outs - ins == 1 && start == -1)
+                start = i;
+            else if(outs != ins)
+                return NOT_EULERIAN;
+            indices.add(i);
+        }
+        return connectedTo(indices, end == -1 ? indices.get(0) : end) ? start == -1 ? EULERIAN_CIRCUIT : EULERIAN_PATH : NOT_EULERIAN;
+    }
+
+    public int eulerianDirected() {
+        double[][] oldUndirectedEdges = undirectedEdges;
+        undirectedEdges = new double[vertices.length][vertices.length];
+        int euler = eulerDir();
+        undirectedEdges = oldUndirectedEdges;
+        return euler;
+    }
+
+    private int eulerUndir() {
+        ArrayList<Integer> indices = new ArrayList<>();
+        int odds = 0, end = -1;
+        for(int i = 0; i < vertices.length; i++) {
+            int degree = 0;
+            for(int j = 0; j < vertices.length; j++) {
+                directedEdges[i][j] = NO_EDGE;
+                if(undirectedEdges[i][j] != NO_EDGE)
+                    degree++;
+            }
+            if(degree == 0)
+                continue;
+            else if(degree % 2 != 0) {
+                odds++;
+                end = i;
+            }
+            indices.add(i);
+        }
+        if(!(odds == 0 || odds == 2))
+            return NOT_EULERIAN;
+        return connectedTo(indices, end == -1 ? indices.get(0) : end) ? end == -1 ? EULERIAN_CIRCUIT : EULERIAN_PATH : NOT_EULERIAN;
+    }
+
+    public int eulerianUndirected() {
+        double[][] oldDirectedEdges = directedEdges;
+        directedEdges = new double[vertices.length][vertices.length];
+        int euler = eulerUndir();
+        directedEdges = oldDirectedEdges;
+        return euler;
     }
 
     public boolean contains(Object vertex) {
@@ -186,6 +319,28 @@ public class Graph<T> {
             if(vertex.equals(vertices[i]))
                 return i;
         return -1;
+    }
+
+    private boolean connectedTo(ArrayList<Integer> indices, int to) {
+        for(int from : indices)
+            if(dfs(from, to) == null)
+                return false;
+        return true;
+    }
+
+    private static LinkedList<Integer> stackToPath(Stack<Integer> stack) {
+        LinkedList<Integer> l = new LinkedList<>();
+        for(int e : stack)
+            l.addLast(e);
+        return l;
+    }
+
+    @SuppressWarnings("unchecked")
+    private LinkedList<T> path(LinkedList<Integer> indices) {
+        LinkedList<T> l = new LinkedList<>();
+        for(int index : indices)
+            l.addLast((T) vertices[index]);
+        return l;
     }
 
 }
