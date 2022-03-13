@@ -276,7 +276,7 @@ public class Graph<T> {
 
     private int eulerUndir() {
         ArrayList<Integer> indices = new ArrayList<>();
-        int odds = 0, end = -1;
+        int odds = 0;
         for(int i = 0; i < vertices.length; i++) {
             int degree = 0;
             for(int j = 0; j < vertices.length; j++) {
@@ -286,15 +286,10 @@ public class Graph<T> {
             }
             if(degree == 0)
                 continue;
-            else if(degree % 2 != 0) {
-                odds++;
-                end = i;
-            }
+            odds += degree % 2;
             indices.add(i);
         }
-        if(!(odds == 0 || odds == 2))
-            return NOT_EULERIAN;
-        return connectedTo(indices, end == -1 ? indices.get(0) : end) ? end == -1 ? EULERIAN_CIRCUIT : EULERIAN_PATH : NOT_EULERIAN;
+        return !(odds == 0 || odds == 2) || !connectedTo(indices, indices.get(0)) ? NOT_EULERIAN : odds == 0 ? EULERIAN_CIRCUIT : EULERIAN_PATH;
     }
 
     public int eulerianUndirected() {
