@@ -192,6 +192,55 @@ public class Graph<T> {
         return indices == null ? null : path(indices);
     }
 
+    private LinkedList<Integer> dijkstra(int from, int to) {
+        ArrayList<Integer> visited = new ArrayList<>();
+        double[] dist = new double[vertices.length];
+        int[] prev = new int[vertices.length];
+        for(int i = 0; i < vertices.length; i++) {
+            if(vertices[i] == null)
+                visited.add(i);
+            dist[i] = Double.POSITIVE_INFINITY;
+        }
+        dist[from] = 0;
+        prev[from] = -1;
+        while(visited.size() < vertices.length) {
+            int curr = -1;
+            double min = Double.POSITIVE_INFINITY;
+            for(int i = 0; i < vertices.length; i++) {
+                if(dist[i] > min || visited.contains(i))
+                    continue;
+                curr = i;
+                min = dist[i];
+            }
+            for(int j = 0; j < vertices.length; j++) {
+                if((directedEdges[curr][j] == NO_EDGE && undirectedEdges[curr][j] == NO_EDGE) || visited.contains(j))
+                    continue;
+                double distance = dist[curr] + (directedEdges[curr][j] == NO_EDGE ? undirectedEdges[curr][j] : directedEdges[curr][j]);
+                if(distance < dist[j]) {
+                    dist[j] = distance;
+                    prev[j] = curr;
+                }
+            }
+            visited.add(curr);
+            if(curr == to)
+                break;
+        }
+        if(dist[to] == Double.POSITIVE_INFINITY)
+            return null;
+        LinkedList<Integer> indices = new LinkedList<>();
+        for(int curr = to; curr != -1; curr = prev[curr])
+            indices.addFirst(curr);
+        return indices;
+    }
+
+    public LinkedList<T> shortestPath(T from, T to) {
+        int i = find(from), j = find(to);
+        if(i == -1 || j == -1)
+            return null;
+        LinkedList<Integer> indices = dijkstra(i, j);
+        return indices == null ? null : path(indices);
+    }
+
     private int eulerDir() {
         ArrayList<Integer> indices = new ArrayList<>();
         int start = -1, end = -1;
