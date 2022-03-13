@@ -2,6 +2,9 @@ package grapheditor;
 
 import abiturklassen.graphklassen.*;
 import abiturklassen.listenklassen.List;
+import abiturklassen.listenklassen.Queue;
+import abiturklassen.listenklassen.Stack;
+
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.MouseEvent;
@@ -184,20 +187,38 @@ public class GraphManager implements MouseListener {
         return true;
     }
 
-    //Alex, kopier hier rein!
-    //das alte einfach löschen
     public boolean eulerianPath() {
         int odds = 0;
         List<Vertex> vertices = g.getVertices();
-        for(vertices.toFirst(); vertices.hasAccess(); vertices.next()) {
-            int size = 0;
-            List<Vertex> neighbours = g.getNeighbours(vertices.getContent());
-            for(neighbours.toFirst(); neighbours.hasAccess(); neighbours.next())
-                size++;
-            if(size % 2 != 0)
-                odds++;
+        for(vertices.toFirst(); vertices.hasAccess();) {
+            int degree = 0;
+            List<Vertex> neighbors = g.getNeighbours(vertices.getContent());
+            for(neighbors.toFirst(); neighbors.hasAccess(); neighbors.next())
+                degree++;
+            if(degree == 0) {
+                vertices.remove();
+                continue;
+            }
+            odds += degree % 2;
+            vertices.next();
         }
-        return odds == 0 || odds == 2;
+        if(!(odds == 0 || odds == 2))
+            return false;
+        vertices.toFirst();
+        List<Vertex> connected = dfs(vertices.getContent());
+        for(vertices.toFirst(); vertices.hasAccess(); vertices.next()) {
+            boolean found = false;
+            for(connected.toFirst(); connected.hasAccess(); connected.next()) {
+                if(vertices.getContent() != connected.getContent())
+                    continue;
+                found = true;
+                connected.remove();
+                break;
+            }
+            if(!found)
+                return false;
+        }
+        return true;
     }
 
     public void completeGraph() {
@@ -286,6 +307,44 @@ public class GraphManager implements MouseListener {
         }
         sb.append("|");
         return sb.toString();
+    }
+
+    private List<Vertex> bfs(Vertex from) {
+        List<Vertex> l = new List<>();
+        Queue<Vertex> queue = new Queue<>();
+        queue.enqueue(from);
+        g.setAllVertexMarks(false);
+        while(!queue.isEmpty()) {
+            List<Vertex> neighbors = g.getNeighbours(queue.front());
+            queue.dequeue();
+            for(neighbors.toFirst(); neighbors.hasAccess(); neighbors.next()) {
+                if(neighbors.getContent().isMarked())
+                    continue;
+                l.append(neighbors.getContent());
+                neighbors.getContent().setMark(true);
+                queue.enqueue(neighbors.getContent());
+            }
+        }
+        return l;
+    }
+
+    private List<Vertex> dfs(Vertex from) {
+        List<Vertex> l = new List<>();
+        Stack<Vertex> stack = new Stack<>();
+        stack.push(from);
+        g.setAllVertexMarks(false);
+        while(!stack.isEmpty()) {
+            List<Vertex> neighbors = g.getNeighbours(stack.top());
+            stack.pop();
+            for(neighbors.toFirst(); neighbors.hasAccess(); neighbors.next()) {
+                if(neighbors.getContent().isMarked())
+                    continue;
+                l.append(neighbors.getContent());
+                neighbors.getContent().setMark(true);
+                stack.push(neighbors.getContent());
+            }
+        }
+        return l;
     }
     
     private void parse(String s) {
