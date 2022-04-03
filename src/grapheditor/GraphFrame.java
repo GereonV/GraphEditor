@@ -69,6 +69,10 @@ public class GraphFrame extends javax.swing.JFrame {
         jMenu2 = new javax.swing.JMenu();
         jMI_complete = new javax.swing.JMenuItem();
         jMI_generate = new javax.swing.JMenuItem();
+        jMenu3 = new javax.swing.JMenu();
+        jMI_dijkstra = new javax.swing.JMenuItem();
+        jMenu4 = new javax.swing.JMenu();
+        jMI_help = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Simple Graph Editor LK Par 2022");
@@ -242,6 +246,32 @@ public class GraphFrame extends javax.swing.JFrame {
 
         jMenuBar1.add(jMenu2);
 
+        jMenu3.setText("Algorithms");
+        jMenu3.setFocusable(false);
+
+        jMI_dijkstra.setText("Dijkstra");
+        jMI_dijkstra.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMI_dijkstraActionPerformed(evt);
+            }
+        });
+        jMenu3.add(jMI_dijkstra);
+
+        jMenuBar1.add(jMenu3);
+
+        jMenu4.setText("Help");
+        jMenu4.setFocusable(false);
+
+        jMI_help.setText("Help");
+        jMI_help.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMI_helpActionPerformed(evt);
+            }
+        });
+        jMenu4.add(jMI_help);
+
+        jMenuBar1.add(jMenu4);
+
         setJMenuBar(jMenuBar1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -322,6 +352,14 @@ public class GraphFrame extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_jMI_generateActionPerformed
 
+    private void jMI_dijkstraActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMI_dijkstraActionPerformed
+        gm.setMode(GraphManager.DrawMode.Dijkstra);
+    }//GEN-LAST:event_jMI_dijkstraActionPerformed
+
+    private void jMI_helpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMI_helpActionPerformed
+        JOptionPane.showMessageDialog(this, "Knoten:\n- Knoten hinzufügen: Linksklick in freien Raum\n\nKanten:\n- Kante hinzufügen: Linksklick auf Startpunkt, dann Linksklick auf Endpunkt\n\nEdit:\n- Knoten bewegen: Linksklick auf bestehenden Knoten, dann Linksklick auf neue Position\n- Knoten löschen: Rechtsklick auf Knoten\n- Kante löschen: Linksklick auf einen Endpunkt, dann Rechtsklick auf anderen Endpunkt", "Hilfe", JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_jMI_helpActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -363,11 +401,15 @@ public class GraphFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JMenuItem jMI_complete;
+    private javax.swing.JMenuItem jMI_dijkstra;
     private javax.swing.JMenuItem jMI_generate;
+    private javax.swing.JMenuItem jMI_help;
     private javax.swing.JMenuItem jMI_open;
     private javax.swing.JMenuItem jMI_save;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
+    private javax.swing.JMenu jMenu3;
+    private javax.swing.JMenu jMenu4;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;

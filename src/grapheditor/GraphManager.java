@@ -23,13 +23,13 @@ public class GraphManager implements MouseListener {
     
     //Eine solche Aufzählung gibt den gazzahligen Werten 0 (=Knoten),1 (=Kanten), usw. einen Namen.
     //Genausogut könnte man Fälle mit 0,1,2,usw. unterscheiden. Dann könnte man den Code aber nicht so gut lesen.
-    public static enum DrawMode { Knoten, Kanten, Edit };
+    public static enum DrawMode { Knoten, Kanten, Edit, Dijkstra };
     
     private Graph g;//DS Graph in der gezeichnete Knoten und Kanten gespeichert werden sollen - ggf. zur List erweitern, dann können mehreren Graphen gespeichert werden.
     private GraphFrame gf;//Zeiger auf dne Frame für Zugriff auf GUI-Objekte
-    private DrawMode mode;//Aktueller Modus: Sollen Knoten oder Kanten gezeichnet werden?
+    private DrawMode mode, prevMode;//Aktueller Modus: Sollen Knoten oder Kanten gezeichnet werden?
     private int num_vert;//Anzahl bisheriger Knoten im aktuellen Graphen
-    private EmbeddedVertex startVert, editVert;//Zwei Knoten, die zur Kantengenerierung markiert sein können
+    private EmbeddedVertex startVert, editVert, dijkstraVert;
     
     /**
      * Konstruktor - selbsterklärend
@@ -40,7 +40,7 @@ public class GraphManager implements MouseListener {
         gf = pGF;
         num_vert = 0;
         mode = DrawMode.Knoten;
-        startVert = editVert = null;
+        startVert = editVert = dijkstraVert = null;
     }
 
     /**
@@ -56,7 +56,7 @@ public class GraphManager implements MouseListener {
     public void newG() {
         g = new Graph();
         num_vert = 0;
-        startVert = editVert = null;
+        startVert = editVert = dijkstraVert = null;
         JPanel canvas = gf.getjTabbedPane1();
         Graphics cg = canvas.getGraphics();
         cg.clearRect(canvas.getX(), canvas.getY(), canvas.getWidth(), canvas.getHeight());
@@ -95,7 +95,9 @@ public class GraphManager implements MouseListener {
     }
 
     public void setMode(DrawMode mode) {
+        prevMode = this.mode;
         this.mode = mode;
+        redraw();
     } 
     
     /* Ab hier: Implementierung der Mouse-Listener-Methoden
@@ -124,7 +126,7 @@ public class GraphManager implements MouseListener {
                 }
                 g.addEdge(new Edge(startVert, vert, Math.random() * 10));
                 drawVertex(startVert, Color.black, cg);
-                drawEdge(vert, cg);
+                drawEdge(vert, Color.black, cg);
                 startVert = null;
                 break;
             case Edit:
@@ -148,6 +150,31 @@ public class GraphManager implements MouseListener {
                 editVert.setY(e.getY());
                 redraw();
                 editVert = null;
+                break;
+            case Dijkstra:
+                if(vert == null)
+                    break;
+                if(dijkstraVert == null) {
+                    drawVertex(vert, Color.blue, cg);
+                    dijkstraVert = vert;
+                    break;
+                }
+                drawVertex(vert, Color.blue, cg);
+                List<Vertex> path = dijkstra(dijkstraVert, vert);
+                if(path == null) {
+                    redraw();
+                    break;
+                }
+                EmbeddedVertex startO = startVert;
+                for(path.toFirst();;) {
+                    startVert = (EmbeddedVertex) path.getContent();
+                    path.next();
+                    if(!path.hasAccess())
+                        break;
+                    drawEdge((EmbeddedVertex) path.getContent(), Color.blue, cg);
+                }
+                startVert = startO;
+                mode = prevMode;
         }
     }
     
@@ -158,11 +185,11 @@ public class GraphManager implements MouseListener {
         cg.drawString(vertex.getID(), vertex.getX(), vertex.getY());
     }
     
-    private void drawEdge(EmbeddedVertex endVert, Graphics cg) {
+    private void drawEdge(EmbeddedVertex endVert, Color c, Graphics cg) {
         int dirX = endVert.getX() - startVert.getX(), dirY = endVert.getY() - startVert.getY();
         double length = 15 / Math.sqrt(dirX * dirX + dirY * dirY);
         int offsetX = (int) (dirX * length), offsetY = (int) (dirY * length);
-        cg.setColor(Color.black);
+        cg.setColor(c);
         cg.drawLine(startVert.getX() + offsetX, startVert.getY() + offsetY, endVert.getX() - offsetX, endVert.getY() - offsetY);
     }
     
@@ -228,7 +255,7 @@ public class GraphManager implements MouseListener {
             startVert = (EmbeddedVertex) l1.getContent();
             for(l2.toFirst(); l2.hasAccess(); l2.next()) {
                 g.addEdge(new Edge(l1.getContent(), l2.getContent(), Math.random() * 10));
-                drawEdge((EmbeddedVertex) l2.getContent(), cg);
+                drawEdge((EmbeddedVertex) l2.getContent(), Color.black, cg);
             }
         }
     }
@@ -372,9 +399,64 @@ public class GraphManager implements MouseListener {
         for(edges.toFirst(); edges.hasAccess(); edges.next()) {
             Vertex[] verts = edges.getContent().getVertices();
             startVert = (EmbeddedVertex) verts[0];
-            drawEdge((EmbeddedVertex) verts[1], cg);
+            drawEdge((EmbeddedVertex) verts[1], Color.black, cg);
         }
         startVert = null;
+    }
+    
+    private List<Vertex> dijkstra(Vertex from, Vertex to) {
+        List<Vertex> l = g.getVertices();
+        int vertexCount = 0;
+        for(l.toFirst(); l.hasAccess(); l.next())
+            vertexCount++;
+        Vertex[] vertices = new Vertex[vertexCount];
+        double[] dist = new double[vertexCount];
+        int[] prev = new int[vertexCount];
+        l.toFirst();
+        for(int i = 0; l.hasAccess(); i++, l.next()) {
+            Vertex v = l.getContent();
+            vertices[i] = v;
+            dist[i] = v == from ? 0 : Double.POSITIVE_INFINITY;
+            prev[i] = -1;
+        }
+        int toIndex = -1;
+        g.setAllVertexMarks(false);
+        while(true) {
+            int curr = -1;
+            double min = Double.POSITIVE_INFINITY;
+            for(int i = 0; i < vertices.length; i++) {
+                if(vertices[i].isMarked() || dist[i] > min)
+                    continue;
+                curr = i;
+                min = dist[i];
+            }
+            if(curr == -1)
+                break;
+            l = g.getNeighbours(vertices[curr]);
+            for(l.toFirst(); l.hasAccess(); l.next()) {
+                int i = 0;
+                while(vertices[i] != l.getContent()) i++;
+                Edge e = g.getEdge(vertices[curr], l.getContent());
+                double distance = dist[curr] + e.getWeight();
+                if(distance > dist[i])
+                    continue;
+                dist[i] = distance;
+                prev[i] = curr;
+            }
+            vertices[curr].setMark(true);
+            if(vertices[curr] != to)
+                continue;
+            toIndex = curr;
+            break;
+        }
+        if(prev[toIndex] == -1)
+            return null; //kein Weg
+        List<Vertex> path = new List<>();
+        for(int curr = toIndex; curr != -1; curr = prev[curr]) {
+            path.toFirst();
+            path.insert(vertices[curr]);
+        }
+        return path;
     }
     
     @Override
